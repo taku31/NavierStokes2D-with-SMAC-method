@@ -1,6 +1,6 @@
 ## Solving navier stokes equation
 
-・girid type : staggered Grid  
+・grid type : staggered Grid  
 ・soliving type : smac method  
 ・discretization method：finite-difference methods 
 
