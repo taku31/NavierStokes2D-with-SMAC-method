@@ -1,5 +1,5 @@
-# navier-stokes
+# solving navier stokes equation
 
-・staggered Grid
-・smac method
-・FDM method
+・girid type staggered Grid.
+・smac method.
+・FDM method.
