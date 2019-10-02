@@ -1,4 +1,4 @@
-## Solving navier stokes equation
+## Solving 2D navier stokes equation with SMAC method
 
 ・grid type : staggered grid  
 ・soliving type : smac method  
