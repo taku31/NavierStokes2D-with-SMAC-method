@@ -1,5 +1,8 @@
-# solving navier stokes equation
+## solving navier stokes equation
 
-・girid type staggered Grid.
-・smac method.
-・FDM method.
+・girid type : staggered Grid  
+・soliving type : smac method  
+・discretization method：FDM method  
+
+## Author
+T.Nakabayashi
