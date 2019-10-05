@@ -1,32 +1,36 @@
-% ‰Šú‰»
+% Solving 2D navier stokes equation with SMAC method
+% Copyright (C) 2019  T.Nakabayashi
+% Released under the MIT license http://opensource.org/licenses/mit-license.php
+
+% åˆæœŸåŒ–
 clear all;
 
-% ƒOƒ[ƒoƒ‹•Ï”éŒ¾
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å®£è¨€
 global dt ddt nx ny dx dy ddx ddx2 ddy ddy2 re
 
-% ƒpƒ‰ƒ[ƒ^[
-n = 25;% Šiq”
-nx = 4 * n;% ‚˜•ûŒüŠiq”
-ny = n;% % ‚™•ûŒüŠiq”
-loop = 20000;% ƒXƒeƒbƒv”
-re = 100;% ƒŒƒCƒmƒ‹ƒY”
-dt = 0.02;% ƒ^ƒCƒ€ƒXƒeƒbƒv
+% ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼
+n = 25;% æ ¼å­æ•°
+nx = 6 * n;% ï½˜æ–¹å‘æ ¼å­æ•°
+ny = 2 * n;% % ï½™æ–¹å‘æ ¼å­æ•°
+loop = 20000;% ã‚¹ãƒ†ãƒƒãƒ—æ•°
+re = 100;% ãƒ¬ã‚¤ãƒãƒ«ã‚ºæ•°
+dt = 0.02;% ã‚¿ã‚¤ãƒ ã‚¹ãƒ†ãƒƒãƒ—
 
-% ”z—ñ‚ÌŠm•Û
+% é…åˆ—ã®ç¢ºä¿
 p = zeros(nx + 2, ny + 2);
 u = zeros(nx + 1, ny + 2);
 v = zeros(nx + 2, ny + 1);
-phi = zeros(nx + 2, ny + 2);% •â³ˆ³—Í
-up = zeros(nx + 1,ny + 2);% —\‘ª‘¬“x
-vp = zeros(nx + 2,ny + 1);% —\‘ª‘¬“x
-divup = zeros(nx + 2, ny + 2);% —\‘ª‘¬“x‚Ì”­U
-divu = zeros(nx + 2, ny + 2);% ˜A‘±‚Ì®ƒ`ƒFƒbƒN—p
-psi = zeros(nx + 1, ny + 2);% —¬‚êŠÖ”
+phi = zeros(nx + 2, ny + 2);% è£œæ­£åœ§åŠ›
+up = zeros(nx + 1,ny + 2);% äºˆæ¸¬é€Ÿåº¦
+vp = zeros(nx + 2,ny + 1);% äºˆæ¸¬é€Ÿåº¦
+divup = zeros(nx + 2, ny + 2);% äºˆæ¸¬é€Ÿåº¦ã®ç™ºæ•£
+divu = zeros(nx + 2, ny + 2);% é€£ç¶šã®å¼ãƒã‚§ãƒƒã‚¯ç”¨
+psi = zeros(nx + 1, ny + 2);% æµã‚Œé–¢æ•°
 uu = zeros(nx+2,ny+2);
 vv = zeros(nx+2,ny+2);
 
-% œZ”‚ÌíŒ¸
-dx = 5 / n;% Šiq•
+% é™¤ç®—æ•°ã®å‰Šæ¸›
+dx = 5 / n;% æ ¼å­å¹…
 dy = dx;
 ddx = 1 / dx;
 ddy = ddx;
@@ -34,82 +38,81 @@ ddx2 = ddx * ddx;
 ddy2 = ddy * ddy;
 ddt = 1 / dt;
 
-% ƒN[ƒ‰ƒ“”‚ÌŠm”F
-dt = min(dt, 0.25 * dx);
-dt = min(dt, 0.2 * re * dx * dx);% 1ŠÔ‚ÌƒXƒeƒbƒv‚Å—¬‘Ì‚ªˆÚ—¬‚É‚æ‚Á‚Ä”ò‚Ño‚³‚È‚¢‚æ‚¤‚É‚·‚é
-dt = min(dt, 0.2 * re * dx * dx);% ŠgU‚Ì‰e‹¿‚Ìl—¶
+% ã‚¯ãƒ¼ãƒ©ãƒ³æ•°ã®ç¢ºèª
+dt = min(dt, 0.25 * dx);% 1æ™‚é–“ã®ã‚¹ãƒ†ãƒƒãƒ—ã§æµä½“ãŒç§»æµã«ã‚ˆã£ã¦é£›ã³å‡ºã•ãªã„ã‚ˆã†ã«ã™ã‚‹
+dt = min(dt, 0.2 * re * dx * dx);% æ‹¡æ•£ã®å½±éŸ¿ã®è€ƒæ…®
 
-% ‰ŠúğŒ‚Ì‘ã“ü
-u(:,ny+2) = 1;% ‘S—Ìˆæ‚ğ‚P‚É‚·‚é‚±‚Æ‚ÅA‰ƒ^ƒCƒ€ƒXƒeƒbƒv‚Å‚Å‚«‚éŒÀ‚è˜A‘±‚Ì•û’ö®‚ğ–‚½‚·‚æ‚¤‚É‚µ‚Ä‚¢‚éH
+% åˆæœŸæ¡ä»¶ã®ä»£å…¥
+u(:,ny+2) = 1;% å…¨é ˜åŸŸã‚’ï¼‘ã«ã™ã‚‹ã“ã¨ã§ã€åˆã‚¿ã‚¤ãƒ ã‚¹ãƒ†ãƒƒãƒ—ã§ã§ãã‚‹é™ã‚Šé€£ç¶šã®æ–¹ç¨‹å¼ã‚’æº€ãŸã™ã‚ˆã†ã«ã—ã¦ã„ã‚‹ï¼Ÿ
 
-% ‹«ŠEğŒ‚Ìİ’è‚P
+% å¢ƒç•Œæ¡ä»¶ã®è¨­å®šï¼‘
 un = 1;
-uw = 1;% —¬“üŒû 
+uw = 1;% æµå…¥å£ 
 us = 1;
-ue = 0;% —¬oŒû
+ue = 0;% æµå‡ºå£
 vn = 0;
-vw = 0;% —¬“üŒû
+vw = 0;% æµå…¥å£
 vs = 0;
-ve = 0;% —¬oŒû
+ve = 0;% æµå‡ºå£
 
-% áŠQ•¨ˆÊ’u‚Ì’è‹`
-object = zeros(nx + 2, ny + 2);% ˆ³—ÍŠiqƒx[ƒX‚ÅáŠQ•¨‚ğ’è‹`‚·‚éB
+% éšœå®³ç‰©ä½ç½®ã®å®šç¾©
+object = zeros(nx + 2, ny + 2);% åœ§åŠ›æ ¼å­ãƒ™ãƒ¼ã‚¹ã§éšœå®³ç‰©ã‚’å®šç¾©ã™ã‚‹ã€‚
 center = [(nx + 2) / 6, (ny + 3) / 2];
-[object] = DefineObjectArea(object, center);
+object = DefineObjectArea(object, center);
 
 for ita = 1 : loop
     
     disp(ita);
     
-    % C³—¬‘¬EC³ˆ³—Íu,v,p‚Ö‹«ŠEğŒ‚ğ“K—p
-    [u] = BoundaryConditionU(u, ue, uw, us, un);
-    [v] = BoundaryConditionV(v, ve, vw, vs, vn);
-    [p] = BoundaryConditionP(p);
+    % ä¿®æ­£æµé€Ÿãƒ»ä¿®æ­£åœ§åŠ›u,v,pã¸å¢ƒç•Œæ¡ä»¶ã‚’é©ç”¨
+    u = BoundaryConditionU(u, ue, uw, us, un);
+    v = BoundaryConditionV(v, ve, vw, vs, vn);
+    p = BoundaryConditionP(p);
     
-    % ‰¼—¬‘¬up‚ÌŒvZ
-    [up] = ProvisionalVelocityU(u, v, p, up);
+    % ä»®æµé€Ÿupã®è¨ˆç®—
+    up = ProvisionalVelocityU(u, v, p, up);
     
-    % ‰¼—¬‘¬up‚Ö‹«ŠEğŒ‚ğ“K—p
-    [up] = BoundaryConditionU(up, ue, uw, us, un);
+    % ä»®æµé€Ÿupã¸å¢ƒç•Œæ¡ä»¶ã‚’é©ç”¨
+    up = BoundaryConditionU(up, ue, uw, us, un);
     
-    % ‰¼—¬‘¬vp‚ÌŒvZ
-    [vp] = ProvisionalVelocityV(u, v, p, vp);
+    % ä»®æµé€Ÿvpã®è¨ˆç®—
+    vp = ProvisionalVelocityV(u, v, p, vp);
     
-    % ‰¼—¬‘¬vp‚Ö‹«ŠEğŒ‚ğ“K—p
-    [vp] = BoundaryConditionV(vp, ve, vw, vs, vn);
+    % ä»®æµé€Ÿvpã¸å¢ƒç•Œæ¡ä»¶ã‚’é©ç”¨
+    vp = BoundaryConditionV(vp, ve, vw, vs, vn);
     
-    % ‰¼—¬‘¬‚ª˜A‘±‚Ì•û’ö®‚ğ–‚½‚µ‚Ä‚¢‚é‚©Šm”F
-    [div, divup] = CheackContinuousFormula(up, vp, divup);
+    % ä»®æµé€ŸãŒé€£ç¶šã®æ–¹ç¨‹å¼ã‚’æº€ãŸã—ã¦ã„ã‚‹ã‹ç¢ºèª
+    [div, divup] = CheackContinuityEquation(up, vp, divup);
     
-    % ˆ³—Í‚Ìƒ|ƒAƒ\ƒ“•û’ö®‚ğ‰ğ‚­
+    % åœ§åŠ›ã®ãƒã‚¢ã‚½ãƒ³æ–¹ç¨‹å¼ã‚’è§£ã
     eps = 10^(- 8);
-    maxitr = nx * ny * 2;% ”½•œ‰ñ”Bû‘©‚³‚¹‚é‚½‚ß‚É‚Í‚±‚Ì‚®‚ç‚¢•K—vB
-    alpha = 1.7;% ŠÉ˜aŒW”
-    [phi] = PoissonSolver(alpha, phi, eps, maxitr, divup, nx, ny, ddt, ddx2, ddy2);
+    maxitr = nx * ny * 2;% åå¾©å›æ•°ã€‚åæŸã•ã›ã‚‹ãŸã‚ã«ã¯ã“ã®ãã‚‰ã„å¿…è¦ã€‚
+    alpha = 1.7;% ç·©å’Œä¿‚æ•°
+    phi = PoissonSolver(alpha, phi, eps, maxitr, divup, nx, ny, ddt, ddx2, ddy2);
     
-    % ‰¼‘¬“xEˆ³—Í‚ÌC³
+    % ä»®é€Ÿåº¦ãƒ»åœ§åŠ›ã®ä¿®æ­£
     [u, v, p] = ModifyVP(up, vp, u, v, p, phi);
     
-    % C³—¬‘¬‚ª˜A‘±‚Ì®‚Ì–‘«“xƒ`ƒFƒbƒN
-    [div, divu] = CheackContinuousFormula(u, v, divu);
+    % ä¿®æ­£æµé€ŸãŒé€£ç¶šã®å¼ã®æº€è¶³åº¦ãƒã‚§ãƒƒã‚¯
+    [div, divu] = CheackContinuityEquation(u, v, divu);
     
-    % áŠQ•¨‚Ì”z’u(ƒZƒ‹“à‚Åè—L‚·‚éŠ„‡‚É‚æ‚Á‚Ä’l‚ğŒˆ’è‚·‚éB)
+    % éšœå®³ç‰©ã®é…ç½®(ã‚»ãƒ«å†…ã§å æœ‰ã™ã‚‹å‰²åˆã«ã‚ˆã£ã¦å€¤ã‚’æ±ºå®šã™ã‚‹ã€‚)
     for i = 1 : nx + 2
         for j = 1 : ny + 2
-            if object(i, j) == 1% áŠQ•¨“à•”‚È‚ç‚Î’l‚ğƒ[ƒ‚É’u‚­
+            if object(i, j) == 1% éšœå®³ç‰©å†…éƒ¨ãªã‚‰ã°å€¤ã‚’ã‚¼ãƒ­ã«ç½®ã
                 u(i - 1, j) = 0;
                 v(i, j - 1) = 0;
-            elseif object(i, j) == 2% áŠQ•¨‹«ŠE‚È‚ç‚Î’l‚Ì”¼•ª
+            elseif object(i, j) == 2% éšœå®³ç‰©å¢ƒç•Œãªã‚‰ã°å€¤ã®åŠåˆ†
                 u(i - 1, j) = 0.5 * u(i - 1, j);
                 v(i, j - 1) = 0.5 * v(i, j - 1);
             end
         end
     end
     
-    % ˆ³—ÍŠiqˆÊ’u‚Å‚Ì‘¬“x‚ğ‹‚ß‚éB
+    % åœ§åŠ›æ ¼å­ä½ç½®ã§ã®é€Ÿåº¦ã‚’æ±‚ã‚ã‚‹ã€‚
     [uu, vv] = VelocityInterpolate(u, v, uu, vv);
     
-    % Œ‹‰Ê‚Ì•`‰æ
+    % çµæœã®æç”»
     vis_contour('u.gif', ita, uu, 0, 1.5, 1)
     %vis_contour('v.gif', ita, vv, -0.6, 0.6, 2)
     %vis_vector('vec.gif', ita, uu, vv, 3)
@@ -117,29 +120,29 @@ for ita = 1 : loop
 end
 
 function[] = vis_contour(filename, timestep, u, maxrange, minrange, fignum)
-% ƒXƒJƒ‰[ê‚Ì‰Â‹‰»%
+% ã‚¹ã‚«ãƒ©ãƒ¼å ´ã®å¯è¦–åŒ–%
 % Input
 % ----------
 % filename : text
-%   o—Ígifƒtƒ@ƒCƒ‹‚Ìƒtƒ@ƒCƒ‹–¼
+%   å‡ºåŠ›gifãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ•ã‚¡ã‚¤ãƒ«å
 % timestep : numeric
-%   ƒ^ƒCƒ€ƒXƒeƒbƒv
+%   ã‚¿ã‚¤ãƒ ã‚¹ãƒ†ãƒƒãƒ—
 % u : matrix
-%   ‰Â‹‰»ê
-% maxrange : ƒXƒJƒ‰[
-%   ƒRƒ“ƒ^[‚ÌÅ‘å’l
-% minrange : ƒXƒJƒ‰[
-%   ƒRƒ“ƒ^[‚ÌÅ¬’l
-% fignum : ƒXƒJƒ‰[
-% @‰½”Ô–Ú‚Ì•`ÊƒEƒBƒ“ƒhƒE‚É‘‚«‚Ş‚©
+%   å¯è¦–åŒ–å ´
+% maxrange : ã‚¹ã‚«ãƒ©ãƒ¼
+%   ã‚³ãƒ³ã‚¿ãƒ¼ã®æœ€å¤§å€¤
+% minrange : ã‚¹ã‚«ãƒ©ãƒ¼
+%   ã‚³ãƒ³ã‚¿ãƒ¼ã®æœ€å°å€¤
+% fignum : ã‚¹ã‚«ãƒ©ãƒ¼
+% ã€€ä½•ç•ªç›®ã®æå†™ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«æ›¸ãè¾¼ã‚€ã‹
 
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global dt
 
 figure(fignum);
 imagesc(u)
-view(0, 90);%‹“_‚Ìİ’è
+view(0, 90);%è¦–ç‚¹ã®è¨­å®š
 title(['time = ', num2str(timestep * dt, '%.3f')]);
 set(gca, 'FontName', 'Times New Roman', 'FontSize', 16);
 axis equal; axis tight; axis on;
@@ -157,21 +160,8 @@ end
 end
 
 function[] = vis_vector(filename, timestep, u, v, fignum)
-% ƒxƒNƒgƒ‹ê‚Ì‰Â‹‰»
-% Input
-% ----------
-% filename : text
-%   o—Ígifƒtƒ@ƒCƒ‹‚Ìƒtƒ@ƒCƒ‹–¼
-% timestep : numeric
-%   ƒ^ƒCƒ€ƒXƒeƒbƒv
-% u : matrix
-%   x•ûŒüƒxƒNƒgƒ‹
-% v : matrix
-%   y•ûŒüƒxƒNƒgƒ‹
-% fignum : ƒXƒJƒ‰[
-% @‰½”Ô–Ú‚Ì•`ÊƒEƒBƒ“ƒhƒE‚É‘‚«‚Ş‚©
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global dt nx ny
 
 figure(fignum);
@@ -194,16 +184,16 @@ end
 
 function[uu, vv] = VelocityInterpolate(u, v, uu, vv)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny
 
 for i = 1 : nx + 2
     for j = 1 : ny + 2
-        if i == 1 % —¬“üŒû‚È‚ç‚Î
+        if i == 1 % æµå…¥å£ãªã‚‰ã°
             uu(i, j) = 0.5 * (3 * u(i, j) - u(i + 1, j));
-        elseif  i == nx + 2 %—¬oŒû‚È‚ç‚Î
+        elseif  i == nx + 2 %æµå‡ºå£ãªã‚‰ã°
             uu(i, j) = 0.5 * (3 * u(i - 1, j) - u(i - 2, j));
-        else% “à•”—Ìˆæ
+        else% å†…éƒ¨é ˜åŸŸ
             uu(i, j) = 0.5 * (u(i, j) + u(i - 1, j));%
         end
     end
@@ -211,20 +201,20 @@ end
 for i = 1 : nx + 2
     for j = 1 : ny + 2
         if j == 1
-            vv(i, j) = 0.5 * (3 * v(i, j) - v(i, j + 1));%Œã‘Ş·•ª‹ß—
+            vv(i, j) = 0.5 * (3 * v(i, j) - v(i, j + 1));%å¾Œé€€å·®åˆ†è¿‘ä¼¼
         elseif j == ny + 2
-            vv(i, j) = 0.5 * (3 * v(i, j - 1) - v(i, j - 2));%Œã‘Ş·•ª‹ß—
+            vv(i, j) = 0.5 * (3 * v(i, j - 1) - v(i, j - 2));%å¾Œé€€å·®åˆ†è¿‘ä¼¼
         else
-            vv(i, j) = 0.5 * (v(i, j) + v(i, j - 1));%‘Oi·•ª‹ß—
+            vv(i, j) = 0.5 * (v(i, j) + v(i, j - 1));%å‰é€²å·®åˆ†è¿‘ä¼¼
         end
     end
 end
 
 end
 
-function[div, divup] = CheackContinuousFormula(up, vp, divup)
+function[div, divup] = CheackContinuityEquation(up, vp, divup)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny ddx ddy
 
 ic = 0;
@@ -241,22 +231,22 @@ end
 
 function[u, v, p] = ModifyVP(up, vp, u, v, p, phi)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny ddx ddy dt
 
 for j = 2 : ny + 1
     for i = 2 : nx
-        u(i, j) = up(i, j) - dt * ddx * (phi(i + 1, j)-phi(i, j));%®‚Q‚V
+        u(i, j) = up(i, j) - dt * ddx * (phi(i + 1, j)-phi(i, j));%å¼ï¼’ï¼—
     end
 end
 for j = 2 : ny
     for i = 2 : nx + 1
-        v(i, j) = vp(i, j) - dt * ddy * (phi(i, j + 1) - phi(i, j));%®‚Q‚X
+        v(i, j) = vp(i, j) - dt * ddy * (phi(i, j + 1) - phi(i, j));%å¼ï¼’ï¼™
     end
 end
 for j = 2 : ny + 1
     for i = 2 : nx + 1
-        p(i, j) = p(i, j) + phi(i, j);%®‚R‚P
+        p(i, j) = p(i, j) + phi(i, j);%å¼ï¼“ï¼‘
     end
 end
 
@@ -264,33 +254,33 @@ end
 
 function[phi] = PoissonSolver(alpha, phi, eps, maxitr, divup, nx, ny, ddt, ddx2, ddy2)
 
-% ƒOƒ[ƒoƒ‹•Ï”g‚¤‚Æ’x‚­‚È‚é‚©‚çg‚í‚È‚¢B
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°ä½¿ã†ã¨é…ããªã‚‹ã‹ã‚‰ä½¿ã‚ãªã„ã€‚
 
-for iter = 1 : maxitr% SOR–@‚É‚æ‚èˆ³—Í•â³’l‚ğ‹‚ß‚éB
+for iter = 1 : maxitr% SORæ³•ã«ã‚ˆã‚Šåœ§åŠ›è£œæ­£å€¤ã‚’æ±‚ã‚ã‚‹ã€‚
     error = 0;
     for j = 2 : ny + 1
         for i = 2 : nx + 1
-            rhs = ddt * divup(i, j);%®‚Q‚T‰E•Ó
+            rhs = ddt * divup(i, j);%å¼ï¼’ï¼•å³è¾º
             resid = ddx2 * (phi(i - 1,j) - 2 * phi(i, j) + phi(i + 1, j))...
                 + ddy2 * (phi(i, j - 1) - 2 * phi(i, j)+phi(i, j + 1)) - rhs;
             dphi = alpha * resid / (2 * (ddx2 + ddy2));
             error = max(abs(dphi), error);
-            phi(i, j) = phi(i, j) + dphi;%®‚Q‚T‚ğphi(i,j)‚É‚Â‚¢‚Ä‚Ü‚Æ‚ßSOR–@‚ÌŒ`‚É‚µ‚½‚à‚Ì
+            phi(i, j) = phi(i, j) + dphi;%å¼ï¼’ï¼•ã‚’phi(i,j)ã«ã¤ã„ã¦ã¾ã¨ã‚SORæ³•ã®å½¢ã«ã—ãŸã‚‚ã®
         end
     end
     
-    % ‹«ŠEğŒ‚Ìİ’è
-    phi(1, 2 : ny + 1) = phi(2, 2 : ny + 1);%“Œ‘¤‚Å‚Ìˆ³—ÍŒù”z‚OB
-    phi(nx + 2, 2 : ny + 1) = 0;%¼‘¤‹«ŠEğŒ
-    phi(2 : nx + 1, 1) = phi(2 : nx + 1, 2);%“ì‘¤‹«ŠEğŒ
-    phi(2 : nx + 1, ny + 2) = phi(2 : nx + 1, ny + 1); %–k‘¤‹«ŠEğŒ
+    % å¢ƒç•Œæ¡ä»¶ã®è¨­å®š
+    phi(1, 2 : ny + 1) = phi(2, 2 : ny + 1);%æ±å´ã§ã®åœ§åŠ›å‹¾é…ï¼ã€‚
+    phi(nx + 2, 2 : ny + 1) = 0;%è¥¿å´å¢ƒç•Œæ¡ä»¶
+    phi(2 : nx + 1, 1) = phi(2 : nx + 1, 2);%å—å´å¢ƒç•Œæ¡ä»¶
+    phi(2 : nx + 1, ny + 2) = phi(2 : nx + 1, ny + 1); %åŒ—å´å¢ƒç•Œæ¡ä»¶
     
-    if error < eps % û‘©ğŒ‚ª–‚½‚³‚ê‚½‚çƒ‹[ƒv‚ğ”²‚¯‚éB
+    if error < eps % åæŸæ¡ä»¶ãŒæº€ãŸã•ã‚ŒãŸã‚‰ãƒ«ãƒ¼ãƒ—ã‚’æŠœã‘ã‚‹ã€‚
         break
     end
     
     if iter >= maxitr
-        disp('Å‘å”½•œ‰ñ”‚É’B‚µ‚Ü‚µ‚½Bû‘©ğŒ‚ğ–‚½‚µ‚Ä‚¢‚Ü‚¹‚ñB');
+        disp('æœ€å¤§åå¾©å›æ•°ã«é”ã—ã¾ã—ãŸã€‚åæŸæ¡ä»¶ã‚’æº€ãŸã—ã¦ã„ã¾ã›ã‚“ã€‚');
     end
 end
 
@@ -298,13 +288,13 @@ end
 
 function[up] = ProvisionalVelocityU(u, v, p, up)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny ddx ddy ddx2 ddy2 re dt
 
 for j = 2 : ny + 1
     for i = 2 : nx % temporary u-velocity
-        %uiijj’†S‚ÅŒvZ
-        %ˆÚ—¬€‚Ì—£U‰»
+        %uï¼ˆijï¼‰ä¸­å¿ƒã§è¨ˆç®—
+        %ç§»æµé …ã®é›¢æ•£åŒ–
         cnvu = ddx * ((u(i + 1, j) + u(i, j))^2 - (u(i - 1, j) + u(i, j))^2) / 4 ...
             + ddy * ((u(i, j + 1) + u(i, j)) * (v(i + 1, j)+v(i, j))...
             -(u(i, j) + u(i, j - 1)) * (v(i, j - 1) + v(i + 1, j - 1))) / 4;
@@ -319,13 +309,13 @@ end
 
 function[vp] = ProvisionalVelocityV(u, v, p, vp)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny ddx ddy ddx2 ddy2 re dt
 
 for j = 2 : ny
     for i = 2 : nx + 1% temporary v-velocity
-        % viijj’†S‚ÅdŒvZ
-        % ˆÚ—¬€‚Ì—£U‰»
+        % vï¼ˆijï¼‰ä¸­å¿ƒã§dè¨ˆç®—
+        % ç§»æµé …ã®é›¢æ•£åŒ–
         cnvv = ddx * ((u(i, j + 1) + u(i, j)) * (v(i + 1, j)+v(i, j))...
             - (u(i - 1, j + 1) + u(i - 1, j)) * (v(i - 1, j)+v(i, j))) / 4 ...
             + ddy * ((v(i, j + 1) + v(i, j))^2 - (v(i, j) + v(i, j - 1))^2) / 4;
@@ -340,60 +330,60 @@ end
 
 function[u] = BoundaryConditionU(u, ue, uw, us, un)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny
 
-u(nx + 1, 1 : ny + 1) = u(nx,1 : ny + 1);% ‘¬“xŒù”z‚O
-u(1, 1 : ny + 1) = uw; % ¼‘¤i—¬“ü‘¤j‹«ŠEğŒ
-u(1 : nx + 1, 1) = us; % “ì‘¤‹«ŠEğŒ
-u(1 : nx + 1, ny + 2) = un; % –k‘¤‹«ŠEğŒ
+u(nx + 1, 1 : ny + 1) = u(nx,1 : ny + 1);% é€Ÿåº¦å‹¾é…ï¼
+u(1, 1 : ny + 1) = uw; % è¥¿å´ï¼ˆæµå…¥å´ï¼‰å¢ƒç•Œæ¡ä»¶
+u(1 : nx + 1, 1) = us; % å—å´å¢ƒç•Œæ¡ä»¶
+u(1 : nx + 1, ny + 2) = un; % åŒ—å´å¢ƒç•Œæ¡ä»¶
 
 end
 
 function[v] = BoundaryConditionV(v, ve, vw, vs, vn)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny
 
-v(2 : nx + 1, 1) = vs;% “ì‘¤‹«ŠEğŒ
-v(2 : nx + 1, ny + 1) = vn;% –k‘¤‹«ŠEğŒ
-v(1, 2 : ny) = vw;% ¼‘¤‹«ŠEğŒB’[“_‚Í¼‘¤‚É‚ÍŠÜ‚ß‚¸A“ŒA“ì‚Æl‚¦‚éB
-v(nx + 2, 2 : ny) = v(nx + 1, 2 : ny);% “Œ‘¤‚Ì‘¬“xŒù”z‚O
+v(2 : nx + 1, 1) = vs;% å—å´å¢ƒç•Œæ¡ä»¶
+v(2 : nx + 1, ny + 1) = vn;% åŒ—å´å¢ƒç•Œæ¡ä»¶
+v(1, 2 : ny) = vw;% è¥¿å´å¢ƒç•Œæ¡ä»¶ã€‚ç«¯ç‚¹ã¯è¥¿å´ã«ã¯å«ã‚ãšã€æ±ã€å—ã¨è€ƒãˆã‚‹ã€‚
+v(nx + 2, 2 : ny) = v(nx + 1, 2 : ny);% æ±å´ã®é€Ÿåº¦å‹¾é…ï¼
 
 end
 
 function[p] = BoundaryConditionP(p)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny
 
-p(nx + 2, 1 : ny + 1) = 0;% “Œ‘¤i—¬o‘¤j‹«ŠEğŒ ˆ³—Í‚O
-p(1, 1 : ny + 1) = p(2, 1 : ny + 1);% ¼‘¤i—¬“ü‘¤j‹«ŠEğŒ
-p(1 : nx + 1, 1) = p(1 : nx + 1, 2);% “ì‘¤‹«ŠEğŒ
-p(1 : nx + 1, ny + 2) = p(1 : nx + 1, ny + 1);% –k‘¤‹«ŠEğŒ
+p(nx + 2, 1 : ny + 1) = 0;% æ±å´ï¼ˆæµå‡ºå´ï¼‰å¢ƒç•Œæ¡ä»¶ åœ§åŠ›ï¼
+p(1, 1 : ny + 1) = p(2, 1 : ny + 1);% è¥¿å´ï¼ˆæµå…¥å´ï¼‰å¢ƒç•Œæ¡ä»¶
+p(1 : nx + 1, 1) = p(1 : nx + 1, 2);% å—å´å¢ƒç•Œæ¡ä»¶
+p(1 : nx + 1, ny + 2) = p(1 : nx + 1, ny + 1);% åŒ—å´å¢ƒç•Œæ¡ä»¶
 
 end
 
 function[object] = DefineObjectArea(object, center)
 
-% ƒOƒ[ƒoƒ‹•Ï”ŒÄ‚Ño‚µ
+% ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°å‘¼ã³å‡ºã—
 global nx ny dx dy
 
-% áŠQ•¨—Ìˆæ‚Ì’è‹`
+% éšœå®³ç‰©é ˜åŸŸã®å®šç¾©
 for i = 1 : nx + 2
     for j = 1 : ny + 2
-        r = sqrt(((i - center(1)) * dx)^2 + ((j - center(2)) * dy)^2);%’†S‚©‚çŠiq“_‚Ü‚Å‚Ì‹——£
+        r = sqrt(((i - center(1)) * dx)^2 + ((j - center(2)) * dy)^2);%ä¸­å¿ƒã‹ã‚‰æ ¼å­ç‚¹ã¾ã§ã®è·é›¢
         if r < 2.5 * dx
-            object(i, j) = 1;% áŠQ•¨‚ÌˆÊ’u‚ğ1‚Æ‚·‚éB
+            object(i, j) = 1;% éšœå®³ç‰©ã®ä½ç½®ã‚’1ã¨ã™ã‚‹ã€‚
         end
     end
 end
-% áŠQ•¨‹«ŠE—Ìˆæ‚Ì’Šo
+% éšœå®³ç‰©å¢ƒç•Œé ˜åŸŸã®æŠ½å‡º
 [row1, col1] = find(object > 0);
 for i = 1: size(row1)
     if object(row1(i) - 1, col1(i)) == 0 || object(row1(i), col1(i)-1)==0 ||...
             object(row1(i)+1, col1(i)) == 0 || object(row1(i),col1(i)+1) == 0
-        object(row1(i), col1(i)) = 2;%Šp’Œ‚Ì‹«ŠE‚ğ‚Q‚Æ‚·‚éB
+        object(row1(i), col1(i)) = 2;%è§’æŸ±ã®å¢ƒç•Œã‚’ï¼’ã¨ã™ã‚‹ã€‚
     end
 end
 
