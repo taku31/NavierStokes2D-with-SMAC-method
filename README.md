@@ -6,6 +6,10 @@
 
 ## demo
 ![](img/u.gif)
+![](img/v.gif)
+![](img/p.gif)
+![](img/omega.gif)
+![](img/vec.gif)
 
 ## Author
 T.Nakabayashi
