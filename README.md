@@ -5,15 +5,15 @@
 ・discretization method：finite-difference methods 
 
 ## demo
-・Velocity u
+・Velocity u  
 ![](img/u.gif)
-・Velocity v
+・Velocity v  
 ![](img/v.gif)
-・Pressure
+・Pressure  
 ![](img/p.gif)
-・Vorticity
+・Vorticity  
 ![](img/omega.gif)
-・Velocity vector
+・Velocity vector  
 ![](img/vec.gif)
 
 ## Author
