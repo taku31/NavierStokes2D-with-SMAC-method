@@ -9,9 +9,9 @@ clear all;
 global dt ddt nx ny dx dy ddx ddx2 ddy ddy2 re
 
 % パラメーター
-n = 25;% 格子数
+n = 15;% 格子数
 nx = 6 * n;% ｘ方向格子数
-ny = 2 * n;% % ｙ方向格子数
+ny = 4 * n;% % ｙ方向格子数
 loop = 20000;% ステップ数
 re = 100;% レイノルズ数
 dt = 0.02;% タイムステップ
@@ -25,9 +25,12 @@ up = zeros(nx + 1,ny + 2);% 予測速度
 vp = zeros(nx + 2,ny + 1);% 予測速度
 divup = zeros(nx + 2, ny + 2);% 予測速度の発散
 divu = zeros(nx + 2, ny + 2);% 連続の式チェック用
-psi = zeros(nx + 1, ny + 2);% 流れ関数
+omega = zeros(nx + 2, ny + 2);% 渦度
 uu = zeros(nx+2,ny+2);
 vv = zeros(nx+2,ny+2);
+pp = zeros(nx+2,ny+2);
+omega2 = zeros(nx + 2, ny + 2);
+
 
 % 除算数の削減
 dx = 5 / n;% 格子幅
@@ -43,11 +46,11 @@ dt = min(dt, 0.25 * dx);% 1時間のステップで流体が移流によって�
 dt = min(dt, 0.2 * re * dx * dx);% 拡散の影響の考慮
 
 % 初期条件の代入
-u(:,ny+2) = 1;% 全領域を１にすることで、初タイムステップでできる限り連続の方程式を満たすようする
+u(:,ny+2) = 1;% 全領域を１にすることで、初タイムステップでできる限り連続の方程式を満たすようにしている？
 
 % 境界条件の設定
 un = 1;
-uw = 1;% 流入口 
+uw = 1;% 流入口
 us = 1;
 ue = 0;% 流出口
 vn = 0;
@@ -57,7 +60,7 @@ ve = 0;% 流出口
 
 % 障害物位置の定義
 object = zeros(nx + 2, ny + 2);% 圧力格子ベースで障害物を定義する。
-center = [(nx + 2) / 6, (ny + 3) / 2];
+center = [(nx + 2) / 5, (ny + 3) / 2];
 object = DefineObjectArea(object, center);
 
 for ita = 1 : loop
@@ -109,13 +112,18 @@ for ita = 1 : loop
         end
     end
     
+    % 渦度の計算
+    omega = CalVorticity(u, v, omega);
+    
     % 圧力格子位置での速度を求める。
-    [uu, vv] = VelocityInterpolate(u, v, uu, vv);
+    [uu, vv, pp, omega2] = interpolation(u, v, p, omega, uu, vv, pp, omega2, object);
     
     % 結果の描画
     vis_contour('u.gif', ita, uu, 0, 1.5, 1)
-    %vis_contour('v.gif', ita, vv, -0.6, 0.6, 2)
-    %vis_vector('vec.gif', ita, uu, vv, 3)
+    vis_contour('v.gif', ita, vv, -0.6, 0.6, 2)
+    vis_contour('p.gif', ita, pp, -0.5, 0.5, 3)
+    vis_contour('omega.gif', ita, omega2, -3, 3, 4)
+    vis_vector('vec.gif', ita, uu, vv, 5)
     
 end
 
@@ -141,7 +149,8 @@ function[] = vis_contour(filename, timestep, u, maxrange, minrange, fignum)
 global dt
 
 figure(fignum);
-imagesc(u)
+h=imagesc(u);
+h.AlphaData = isfinite(u); % NaNやInfを透明にする
 view(0, 90);%視点の設定
 title(['time = ', num2str(timestep * dt, '%.3f')]);
 set(gca, 'FontName', 'Times New Roman', 'FontSize', 16);
@@ -182,16 +191,16 @@ end
 
 end
 
-function[uu, vv] = VelocityInterpolate(u, v, uu, vv)
+function[uu, vv, pp, omega2] = interpolation(u, v, p, omega, uu, vv, pp, omega2, object)
 
 % グローバル変数呼び出し
 global nx ny
 
 for i = 1 : nx + 2
     for j = 1 : ny + 2
-        if i == 1 % 流入口ならば
+        if i == 1
             uu(i, j) = 0.5 * (3 * u(i, j) - u(i + 1, j));
-        elseif  i == nx + 2 %流出口ならば
+        elseif  i == nx + 2
             uu(i, j) = 0.5 * (3 * u(i - 1, j) - u(i - 2, j));
         else% 内部領域
             uu(i, j) = 0.5 * (u(i, j) + u(i - 1, j));%
@@ -209,6 +218,35 @@ for i = 1 : nx + 2
         end
     end
 end
+for i = 1 : nx + 2
+    for j = 1 : ny + 2
+        if i == 1
+            omega2(i, j) = 0.5 * (3 * omega(i, j) - omega(i + 1, j));
+        elseif j == 1
+            omega2(i, j) = 0.5 * (3 * omega(i, j) - omega(i, j + 1));%後退差分近似
+        elseif  i == nx + 2
+            omega2(i, j) = 0.5 * (3 * omega(i - 1, j) - omega(i - 2, j));
+        elseif j == ny + 2
+            omega2(i, j) = 0.5 * (3 * omega(i, j - 1) - omega(i, j - 2));%後退差分近似
+        else
+            omega2(i, j) = 0.5 * (omega(i, j) + omega(i, j - 1));%前進差分近似
+        end
+    end
+end
+
+pp = p;%圧力は補間の必要なし。障害物処理のみする。
+
+%障害物領域はNANにする。
+for i = 1 : nx + 2
+    for j = 1 : ny + 2
+        if object(i, j) == 1
+            uu(i, j) = NaN;
+            vv(i, j) = NaN;
+            pp(i, j) = NaN;
+            omega2(i, j) = NaN;
+        end
+    end
+end
 
 end
 
@@ -218,14 +256,17 @@ function[div, divup] = CheackContinuityEquation(up, vp, divup)
 global nx ny ddx ddy
 
 ic = 0;
-div = 0;
+divsum = 0;
+
 for j = 2 : ny + 1
     for i = 2 : nx + 1
         divup(i, j) = ddx * (up(i, j) - up(i - 1, j)) + ddy * (vp(i, j) - vp(i,j - 1));
         ic = ic + 1;
-        div = div + divup(i, j)^2;
+        divsum = divsum + divup(i, j)^2;
     end
 end
+
+div = sqrt(divsum/ic);
 
 end
 
@@ -369,21 +410,45 @@ function[object] = DefineObjectArea(object, center)
 % グローバル変数呼び出し
 global nx ny dx dy
 
-% 障害物領域の定義
+% % 障害物領域の定義(円形)
+% for i = 1 : nx + 2
+%     for j = 1 : ny + 2
+%         r = sqrt(((i - center(1)) * dx)^2 + ((j - center(2)) * dy)^2);%中心から格子点までの距離
+%         if r < 4 * dx
+%             object(i, j) = 1;% 障害物の位置を1とする。
+%         end
+%     end
+% end
+
+% 障害物領域の定義(四角)
+d = 3; % 角柱の半径
 for i = 1 : nx + 2
     for j = 1 : ny + 2
-        r = sqrt(((i - center(1)) * dx)^2 + ((j - center(2)) * dy)^2);%中心から格子点までの距離
-        if r < 2.5 * dx
+        if i > center(1) - d && i < center(1) + d && j > center(2) - d && j < center(2) + d
             object(i, j) = 1;% 障害物の位置を1とする。
         end
     end
 end
+
 % 障害物境界領域の抽出
 [row1, col1] = find(object > 0);
 for i = 1: size(row1)
     if object(row1(i) - 1, col1(i)) == 0 || object(row1(i), col1(i)-1)==0 ||...
             object(row1(i)+1, col1(i)) == 0 || object(row1(i),col1(i)+1) == 0
-        object(row1(i), col1(i)) = 2;%角柱の境界を２とする。
+        object(row1(i), col1(i)) = 2;%障害物の境界を２とする。
+    end
+end
+
+end
+
+function[omega] = CalVorticity(u, v, omega)
+
+% グローバル変数呼び出し
+global nx ny ddx ddy
+
+for j = 2 : ny + 1
+    for i = 2 : nx + 1
+        omega(i, j) = ddx * (v(i, j) - v(i - 1, j)) - ddy * (u(i, j) - u(i,j - 1));
     end
 end
 
