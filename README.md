@@ -6,15 +6,15 @@
 
 ## demo
 ・Velocity u  
-![](img/u.gif)
+![](img/u.gif)  
 ・Velocity v  
-![](img/v.gif)
+![](img/v.gif)  
 ・Pressure  
-![](img/p.gif)
+![](img/p.gif)  
 ・Vorticity  
-![](img/omega.gif)
+![](img/omega.gif)  
 ・Velocity vector  
-![](img/vec.gif)
+![](img/vec.gif)  
 
 ## Author
 T.Nakabayashi
