@@ -9,11 +9,11 @@ clear all;
 global dt ddt nx ny dx dy ddx ddx2 ddy ddy2 re
 
 % パラメーター
-n = 15;% 格子数
+n = 20;% 格子数
 nx = 6 * n;% ｘ方向格子数
 ny = 4 * n;% % ｙ方向格子数
 loop = 20000;% ステップ数
-re = 100;% レイノルズ数
+re = 30;% レイノルズ数
 dt = 0.02;% タイムステップ
 
 % 配列の確保
@@ -30,7 +30,6 @@ uu = zeros(nx+2,ny+2);
 vv = zeros(nx+2,ny+2);
 pp = zeros(nx+2,ny+2);
 omega2 = zeros(nx + 2, ny + 2);
-
 
 % 除算数の削減
 dx = 5 / n;% 格子幅
@@ -60,7 +59,7 @@ ve = 0;% 流出口
 
 % 障害物位置の定義
 object = zeros(nx + 2, ny + 2);% 圧力格子ベースで障害物を定義する。
-center = [(nx + 2) / 5, (ny + 3) / 2];
+center = [(nx + 2) / 6, (ny + 3) / 2];
 object = DefineObjectArea(object, center);
 
 for ita = 1 : loop
@@ -88,8 +87,8 @@ for ita = 1 : loop
     [div, divup] = CheackContinuityEquation(up, vp, divup);
     
     % 圧力のポアソン方程式を解く
-    eps = 10^(- 8);
-    maxitr = nx * ny * 2;% 反復回数。収束させるためにはこのぐらい必要。
+    eps = 10^(- 10);
+    maxitr = nx * ny * 20;% 反復回数。収束させるためにはこのぐらい必要。
     alpha = 1.7;% 緩和係数
     phi = PoissonSolver(alpha, phi, eps, maxitr, divup, nx, ny, ddt, ddx2, ddy2);
     
@@ -120,10 +119,12 @@ for ita = 1 : loop
     
     % 結果の描画
     vis_contour('u.gif', ita, uu, 0, 1.5, 1)
-    vis_contour('v.gif', ita, vv, -0.6, 0.6, 2)
+    vis_contour('v.gif', ita, vv, -0.3, 0.3, 2)
     vis_contour('p.gif', ita, pp, -0.5, 0.5, 3)
-    vis_contour('omega.gif', ita, omega2, -3, 3, 4)
-    vis_vector('vec.gif', ita, uu, vv, 5)
+    vis_contour('omega.gif', ita, omega2, -0.5, 0.5, 4)
+    vis_contour('div.gif', ita, divup, -0.0001, 0.0001, 5)
+    vis_vector('vec.gif', ita, uu, vv, 6)
+
     
 end
 
@@ -410,25 +411,25 @@ function[object] = DefineObjectArea(object, center)
 % グローバル変数呼び出し
 global nx ny dx dy
 
-% % 障害物領域の定義(円形)
-% for i = 1 : nx + 2
-%     for j = 1 : ny + 2
-%         r = sqrt(((i - center(1)) * dx)^2 + ((j - center(2)) * dy)^2);%中心から格子点までの距離
-%         if r < 4 * dx
-%             object(i, j) = 1;% 障害物の位置を1とする。
-%         end
-%     end
-% end
-
-% 障害物領域の定義(四角)
-d = 3; % 角柱の半径
+% 障害物領域の定義(円形)
 for i = 1 : nx + 2
     for j = 1 : ny + 2
-        if i > center(1) - d && i < center(1) + d && j > center(2) - d && j < center(2) + d
+        r = sqrt(((i - center(1)) * dx)^2 + ((j - center(2)) * dy)^2);%中心から格子点までの距離
+        if r < 4 * dx
             object(i, j) = 1;% 障害物の位置を1とする。
         end
     end
 end
+
+% % 障害物領域の定義(四角)
+% d = 3; % 角柱の半径
+% for i = 1 : nx + 2
+%     for j = 1 : ny + 2
+%         if i > center(1) - d && i < center(1) + d && j > center(2) - d && j < center(2) + d
+%             object(i, j) = 1;% 障害物の位置を1とする。
+%         end
+%     end
+% end
 
 % 障害物境界領域の抽出
 [row1, col1] = find(object > 0);
