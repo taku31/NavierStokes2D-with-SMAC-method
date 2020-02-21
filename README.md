@@ -16,5 +16,8 @@
 ・Velocity vector  
 ![](img/vec.gif)  
 
+## Reference
+河村哲也 (2014) 『流体解析の基礎』，朝倉書店．
+
 ## Author
 T.Nakabayashi
