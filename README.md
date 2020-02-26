@@ -12,9 +12,11 @@
 ・Pressure  
 ![](img/p.gif)  
 ・Vorticity  
-![](img/omega.gif)  
+![](img/vorticity.gif)  
 ・Velocity vector  
 ![](img/vec.gif)  
+・Particle  
+![](img/particle.gif)  
 
 ## Reference
 河村哲也 (2014) 『流体解析の基礎』，朝倉書店．
