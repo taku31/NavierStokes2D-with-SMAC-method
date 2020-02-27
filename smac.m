@@ -9,11 +9,11 @@ clear all;
 global dt ddt nx ny dx dy ddx ddx2 ddy ddy2 re
 
 % パラメーター
-n = 20;% 格子数
-nx = 6 * n;% ｘ方向格子数
-ny = 4 * n;% % ｙ方向格子数
-loop = 20000;% ステップ数
-re = 30;% レイノルズ数
+n = 60;% 格子数
+nx = 2 * n;% x方向格子数
+ny = 1 * n;% % ｙ方向格子数
+loop = 3000;% ステップ数
+re = 100;% レイノルズ数
 dt = 0.02;% タイムステップ
 
 % 配列の確保
@@ -45,7 +45,7 @@ dt = min(dt, 0.25 * dx);% 1時間のステップで流体が移流によって�
 dt = min(dt, 0.2 * re * dx * dx);% 拡散の影響の考慮
 
 % 初期条件の代入
-u(:,ny+2) = 1;% 全領域を１にすることで、初タイムステップでできる限り連続の方程式を満たすようにしている？
+u(:,ny+2) = 1;% 全領域を1にすることで、初タイムステップでできる限り連続の方程式を満たすようにしている？
 
 % 境界条件の設定
 un = 1;
@@ -59,8 +59,18 @@ ve = 0;% 流出口
 
 % 障害物位置の定義
 object = zeros(nx + 2, ny + 2);% 圧力格子ベースで障害物を定義する。
-center = [(nx + 2) / 6, (ny + 3) / 2];
-object = DefineObjectArea(object, center);
+center = round([(nx + 2) / 5, (ny + 2) / 2]);% 中心節点番号。整数指定しないと、非対称になる。
+r = 6;% 半径（節点個数単位）
+object = DefineObjectArea(object, center, r);
+
+% 粒子位置の生成
+%rng(1);% 乱数シードの固定
+p_num = 30;% 1タイムステップで発生させる粒子数。
+dt_p = 50 * dt;% 粒子発生間隔
+tmax_p = 200;% 粒子発生完了時間
+p_num_total = p_num * (fix(tmax_p / dt_p) + 1);% 合計発生粒子数。初期配置粒子分1を足しておく。
+px = NaN(p_num_total, 1);% 粒子x座標。NaN要素として確保すると、描写時に粒子がない要素を無視できる。
+py = NaN(p_num_total, 1);% 粒子y座標。
 
 for ita = 1 : loop
     
@@ -88,7 +98,7 @@ for ita = 1 : loop
     
     % 圧力のポアソン方程式を解く
     eps = 10^(- 10);
-    maxitr = nx * ny * 20;% 反復回数。収束させるためにはこのぐらい必要。
+    maxitr = nx * ny * 100;% 反復回数。収束させるためにはこのぐらい必要。
     alpha = 1.7;% 緩和係数
     phi = PoissonSolver(alpha, phi, eps, maxitr, divup, nx, ny, ddt, ddx2, ddy2);
     
@@ -117,14 +127,20 @@ for ita = 1 : loop
     % 圧力格子位置での速度を求める。
     [uu, vv, pp, omega2] = interpolation(u, v, p, omega, uu, vv, pp, omega2, object);
     
+    % 粒子の生成
+    [px, py] = GenerateParticles(px, py, p_num, tmax_p, dt_p, ita);
+    
+    % 粒子位置の更新
+    [px, py] = FlowParticles(px, py, uu, vv);
+    
     % 結果の描画
-    vis_contour('u.gif', ita, uu, 0, 1.5, 1)
-    vis_contour('v.gif', ita, vv, -0.3, 0.3, 2)
-    vis_contour('p.gif', ita, pp, -0.5, 0.5, 3)
-    vis_contour('omega.gif', ita, omega2, -0.5, 0.5, 4)
-    vis_contour('div.gif', ita, divup, -0.0001, 0.0001, 5)
-    vis_vector('vec.gif', ita, uu, vv, 6)
-
+    %vis_contour('u.gif', ita, uu, 0, 1.5, 1)
+    %vis_contour('v.gif', ita, vv, -0.5, 0.5, 2)
+    %vis_contour('p.gif', ita, pp, -0.5, 0.5, 3)
+    %vis_contour('vorticity.gif', ita, omega2, -2.5, 2.5, 4)
+    %vis_contour('div.gif', ita, divup, -0.0001, 0.0001, 5)
+    %vis_vector('vec.gif', ita, uu, vv, 6)
+    vis_particles('particle.gif', ita, px, py, object, 7)
     
 end
 
@@ -147,16 +163,18 @@ function[] = vis_contour(filename, timestep, u, maxrange, minrange, fignum)
 
 
 % グローバル変数呼び出し
-global dt
+global dt nx ny
 
 figure(fignum);
-h=imagesc(u);
+u = flipud(rot90(u));
+h = imagesc(u);
+view(0, 270);%視点の設定
 h.AlphaData = isfinite(u); % NaNやInfを透明にする
-view(0, 90);%視点の設定
 title(['time = ', num2str(timestep * dt, '%.3f')]);
 set(gca, 'FontName', 'Times New Roman', 'FontSize', 16);
 axis equal; axis tight; axis on;
-colorbar
+colorbar('southoutside')
+
 caxis([maxrange minrange])
 frame = getframe(fignum);
 im = frame2im(frame);
@@ -181,6 +199,40 @@ set(gca, 'FontName', 'Times New Roman', 'FontSize', 16);
 axis equal; axis tight; axis on;
 xlim([0 nx]);
 ylim([0 ny]);
+
+frame = getframe(fignum);
+im = frame2im(frame);
+[imind, cm] = rgb2ind(im, 256);
+if timestep == 1
+    imwrite(imind, cm, filename, 'gif', 'DelayTime', 0.001, 'Loopcount', inf);
+elseif rem(timestep, 10) == 0
+    imwrite(imind, cm, filename, 'gif', 'DelayTime', 0.001, 'WriteMode', 'append');
+end
+
+end
+
+function[] = vis_particles(filename, timestep, px, py, object, fignum)
+
+% グローバル変数呼び出し
+global dt nx ny
+
+figure(fignum);
+clf(fignum,'reset')
+hold on;
+object2 = flipud(rot90(object));
+object2(object2 == 2) = 0;
+imagesc(object2);
+c = gray;
+c = flipud(c);
+colormap(c);
+scatter(px, py)
+title(['time = ', num2str(timestep * dt, '%.3f')]);
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 16);
+axis equal; axis tight; axis on;
+xlim([0 nx]);
+ylim([0 ny]);
+hold off;
+
 frame = getframe(fignum);
 im = frame2im(frame);
 [imind, cm] = rgb2ind(im, 256);
@@ -197,6 +249,7 @@ function[uu, vv, pp, omega2] = interpolation(u, v, p, omega, uu, vv, pp, omega2,
 % グローバル変数呼び出し
 global nx ny
 
+
 for i = 1 : nx + 2
     for j = 1 : ny + 2
         if i == 1
@@ -208,6 +261,7 @@ for i = 1 : nx + 2
         end
     end
 end
+
 for i = 1 : nx + 2
     for j = 1 : ny + 2
         if j == 1
@@ -219,6 +273,7 @@ for i = 1 : nx + 2
         end
     end
 end
+
 for i = 1 : nx + 2
     for j = 1 : ny + 2
         if i == 1
@@ -406,26 +461,25 @@ p(1 : nx + 1, ny + 2) = p(1 : nx + 1, ny + 1);% 北側境界条件
 
 end
 
-function[object] = DefineObjectArea(object, center)
+function[object] = DefineObjectArea(object, center, r)
 
 % グローバル変数呼び出し
 global nx ny dx dy
 
 % 障害物領域の定義(円形)
-for i = 1 : nx + 2
-    for j = 1 : ny + 2
-        r = sqrt(((i - center(1)) * dx)^2 + ((j - center(2)) * dy)^2);%中心から格子点までの距離
-        if r < 4 * dx
+for i = 2 : nx + 1
+    for j = 2 : ny + 1
+        radius = sqrt(((i - center(1))* dx)^2 + ((j - center(2)) * dy)^2 );%中心から格子点までの距離
+        if radius < r * dx
             object(i, j) = 1;% 障害物の位置を1とする。
         end
     end
 end
 
 % % 障害物領域の定義(四角)
-% d = 3; % 角柱の半径
 % for i = 1 : nx + 2
 %     for j = 1 : ny + 2
-%         if i > center(1) - d && i < center(1) + d && j > center(2) - d && j < center(2) + d
+%         if (i - 2) * dx > center(1) - r && (i - 2) * dx < center(1) + r && (j - 2) * dy > center(2) - r && (j - 2) * dy < center(2) + r
 %             object(i, j) = 1;% 障害物の位置を1とする。
 %         end
 %     end
@@ -450,6 +504,74 @@ global nx ny ddx ddy
 for j = 2 : ny + 1
     for i = 2 : nx + 1
         omega(i, j) = ddx * (v(i, j) - v(i - 1, j)) - ddy * (u(i, j) - u(i,j - 1));
+    end
+end
+
+end
+
+
+function[px, py] = FlowParticles(px, py, uu, vv)
+
+% グローバル変数呼び出し
+global  dt nx ny
+
+for i = 1 : size(px, 1)
+    
+    if ~isnan(px(i))% 粒子が未存在の場合は処理しない。
+        
+        px_int = fix(px(i));% 粒子x座標の0に近い側の整数
+        py_int = fix(py(i));% 粒子y座標の0に近い側の整数
+        
+        px_s= px(i) - px_int; % 粒子x座標の小数部分
+        py_s= py(i) - py_int; % 粒子y座標の小数部分
+        
+        % 簡易的な補間計算より移動量を求める。
+        spdx = (px_s * uu(px_int, py_int) + px_s * uu(px_int, py_int + 1)...
+            + (1 - px_s) * uu(px_int + 1, py_int ) + (1 - px_s) * uu(px_int + 1, py_int + 1)) * dt;
+        spdy = (py_s * vv(px_int, py_int) + py_s * vv(px_int, py_int + 1)...
+            + (1 - py_s) * vv(px_int + 1, py_int ) + (1 - py_s) * vv(px_int + 1, py_int + 1)) * dt;
+        
+        % もしNANならば粒子は動かさない。
+        if isnan(spdx)
+            spdx = 0;
+        end
+        if isnan(spdy)% elseif使うとうまく判定されなかったのでifで。
+            spdy = 0;
+        end
+        
+        % 粒子位置の更新
+        px(i) = px(i) + spdx;
+        py(i) = py(i) + spdy;
+        
+        % 領域外に出た粒子は削除する。
+        if px(i) >= nx || px(i) < 1 || py(i) >= nx || py(i) < 1
+            px(i) = NaN;% NaNにしておくと描写時に無視される。
+            py(i) = NaN;
+        end
+        
+    end
+    
+end
+
+end
+
+function[px, py] = GenerateParticles(px, py, p_num, tmax_p, dt_p, ita)
+
+% グローバル変数呼び出し
+global  nx ny dt
+
+if ita * dt <= tmax_p
+    if  rem(ita * dt, dt_p) == 0 || ita == 1
+        
+        pc = fix(1 + (ita * dt) / dt_p);% 粒子の発生回数
+        
+        %粒子のx座標を生成。
+        px((pc - 1) * p_num + 1 : (pc - 1) * p_num + p_num) = 1;
+        
+        %粒子のy座標を生成。
+        py_gene = 1 : ny / (p_num + 1) : ny;
+        py((pc - 1) * p_num + 1 : (pc - 1) * p_num + p_num) = py_gene(1 : p_num);
+        
     end
 end
 
