@@ -544,8 +544,8 @@ for i = 1 : size(px, 1)
         py(i) = py(i) + spdy;
         
         % 領域外に出た粒子は削除する。
-        if px(i) >= nx || px(i) < 1 || py(i) >= nx || py(i) < 1
-            px(i) = NaN;% NaNにしておくと描写時に無視される。
+        if px(i) >= nx + 2 || px(i) < 1 || py(i) >= ny + 2 || py(i) < 1
+            px(i) = NaN;% NaNにしておくとscatter描写時に無視される。
             py(i) = NaN;
         end
         
@@ -569,7 +569,7 @@ if ita * dt <= tmax_p
         px((pc - 1) * p_num + 1 : (pc - 1) * p_num + p_num) = 1;
         
         %粒子のy座標を生成。
-        py_gene = 1 : ny / (p_num + 1) : ny;
+        py_gene = 1 : (ny + 2) / (p_num + 1) : ny + 2;
         py((pc - 1) * p_num + 1 : (pc - 1) * p_num + p_num) = py_gene(1 : p_num);
         
     end
